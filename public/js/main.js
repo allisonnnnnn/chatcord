@@ -1,6 +1,8 @@
 // access the form 
 const chatForm = document.querySelector('#chat-form')
 const chatMessages = document.querySelector('.chat-messages')
+const roomName = document.querySelector('#room-name')
+const userList = document.querySelector('#users')
 
 
 // Get username and room from URL
@@ -14,6 +16,11 @@ const socket = io();
 // send url key info to server side
 socket.emit('joinRoom', { username, room })
 
+socket.on('roomUsers', ({ room, users }) => {
+    outputRoomName(room);
+    outputUser(users);
+})
+
 // MESSAGE FROM SERVER
 socket.on('message', message => {
     console.log(message)
@@ -24,7 +31,18 @@ socket.on('message', message => {
 
 })
 
+// Add room name to DOM
+function outputRoomName(room) {
+    roomName.innerText = room;
+}
 
+// Add user to DOM
+function outputUser(users) {
+    userList.innerHTML = `
+    ${users.map(user => `<li>${user.username}</li>`).join('')}
+    `
+
+}
 
 
 // MESSAGE SUBMIT TO SERVER

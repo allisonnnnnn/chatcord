@@ -2,37 +2,48 @@ const path = require('path')
 const http = require('http')
 const express = require("express")
 const socketio = require("socket.io")
+const formatMessage = require('./utils/messages')
+const { userJoin, getCurrentUser } = require('./utils/users')
 
 const app = express();
-
-
 const server = http.createServer(app)
-
 const io = socketio(server)
 
-// SET STATIC FOLDER
 
+// SET STATIC FOLDER
 app.use(express.static(path.join(__dirname, 'public')))
+
+const botName = 'ChatCord Bot'
+
 
 // RUN WHEN CLIENT CONNECTS
 io.on('connection', socket => {
-    console.log("New WS Connection...")
-    // logged-in user can see 
-    socket.emit('message', 'Welcome to Chatcord')
+    // console.log("New WS Connection...")
 
-    // BROADCAST WHEN A USER CONNECTS
-    // everyone but logged-in user can see
-    socket.broadcast.emit('message', 'A user has joined this chat');
+    socket.on('joinRoom', ({ username, room }) => {
 
-    // WHEN USER DISCONNECTS
-    socket.on('disconnect', () => {
-        io.emit('message', 'a user has left the chat')
+        const user = userJoin(socket.id, username, room)
+
+        socket.join(user.room);
+        // logged-in user can see 
+        socket.emit('message', formatMessage(botName, 'Welcome to Chatcord'))
+
+        // BROADCAST WHEN A USER CONNECTS
+        // everyone but logged-in user can see
+        socket.broadcast.to(user.room).emit('message', formatMessage(botName, `${user.username} has joined this chat`));
+
+
     })
 
     // LISTEN FOR CHATMESSAGE
     socket.on('chatMessage', (msg) => {
-        io.emit('message', msg)
+        io.emit('message', formatMessage('USER', msg))
     })
+    // WHEN USER DISCONNECTS
+    socket.on('disconnect', () => {
+        io.emit('message', formatMessage(botName, 'A user has left the chat'))
+    })
+
 })
 
 const PORT = process.env.PORT || 3000;
